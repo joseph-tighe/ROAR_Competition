@@ -42,7 +42,7 @@ class RoarCompetitionRule:
 
 
     def lap_finished(
-        self, 
+        self,
         check_step = 5
     ):
         # print(len(self.waypoints))
@@ -50,7 +50,7 @@ class RoarCompetitionRule:
         #return np.all(self.waypoint_occupancy)
 
     async def tick(
-        self, 
+        self,
         check_step = 15
     ):
         current_location = self.vehicle.get_3d_location()
@@ -74,17 +74,17 @@ class RoarCompetitionRule:
             if distance < min_dis:
                 min_dis = distance
                 min_index = i
-        
+
         self.furthest_waypoints_index += min_index #= new_furthest_index
         self._last_vehicle_location = current_location
         print(f"reach waypoints {self.furthest_waypoints_index} at {self.waypoints[self.furthest_waypoints_index].location}")
 
-    
+
     async def respawn(
         self
     ):
         # vehicle_location = self.vehicle.get_3d_location()
-        # 
+        #
         # closest_waypoint_dist = np.inf
         # closest_waypoint_idx = 0
         # for i,waypoint in enumerate(self.waypoints):
@@ -105,7 +105,7 @@ class RoarCompetitionRule:
         self.vehicle.set_angular_velocity(np.zeros(3))
         for _ in range(20):
             await self.world.step()
-        
+
         self._last_vehicle_location = self.vehicle.get_3d_location()
         self.furthest_waypoints_index = 0
 
@@ -117,7 +117,7 @@ async def evaluate_solution(
 ) -> Optional[Dict[str, Any]]:
     if enable_visualization:
         viewer = ManualControlViewer()
-    
+
     # Spawn vehicle and sensors to receive data
     waypoints = world.maneuverable_waypoints
     vehicle = world.spawn_vehicle(
@@ -156,7 +156,7 @@ async def evaluate_solution(
     assert collision_sensor is not None
 
 
-    # Start to run solution 
+    # Start to run solution
     solution : RoarCompetitionSolution = solution_constructor(
         waypoints,
         RoarCompetitionAgentWrapper(vehicle),
@@ -171,25 +171,25 @@ async def evaluate_solution(
 
     for _ in range(20):
         await world.step()
-    
+
     rule.initialize_race()
     # vehicle.close()
     # exit()
 
-    # Timer starts here 
+    # Timer starts here
     start_time = world.last_tick_elapsed_seconds
     current_time = start_time
     await vehicle.receive_observation()
     await solution.initialize()
 
-    
+
     while True:
         # terminate if time out
         current_time = world.last_tick_elapsed_seconds
         if current_time - start_time > max_seconds:
             vehicle.close()
             return None
-        
+
         # receive sensors' data
         await vehicle.receive_observation()
 
@@ -202,10 +202,10 @@ async def evaluate_solution(
             print(f"major collision of tensity {collision_impulse_norm}")
             # return None
             await rule.respawn()
-        
+
         if rule.lap_finished():
             break
-        
+
         if enable_visualization:
             if viewer.render(camera.get_last_observation()) is None:
                 vehicle.close()
@@ -213,13 +213,13 @@ async def evaluate_solution(
 
         await solution.step()
         await world.step()
-    
+
     print("end of the loop")
     end_time = world.last_tick_elapsed_seconds
     vehicle.close()
     if enable_visualization:
         viewer.close()
-    
+
     return {
         "elapsed_time" : end_time - start_time,
     }
